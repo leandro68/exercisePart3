@@ -1,34 +1,14 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
 const morgan = require('morgan')
 const cors = require('cors')
+const Person = require('./models/person')
 
 app.use(express.json())
 app.use(cors())
 app.use(express.static('dist'))
 
-let persons = [
-  { 
-    "id": 1,
-    "name": "Arto Hellas", 
-    "number": "040-123456"
-  },
-  { 
-    "id": 2,
-    "name": "Ada Lovelace", 
-    "number": "39-44-5323523"
-  },
-  { 
-    "id": 3,
-    "name": "Dan Abramov", 
-    "number": "12-43-234345"
-  },
-  { 
-    "id": 4,
-    "name": "Mary Poppendieck", 
-    "number": "39-23-6423122"
-  }
-]
 
 // Crear un token personalizado para Morgan
 // Crear un token personalizado para Morgan
@@ -49,7 +29,9 @@ app.get('/', (request, response) => {
 })
 
 app.get('/api/persons', (request, response) => {
-  response.json(persons)
+  Person.find({}).then(persons => {
+    response.json(persons)
+  })
 })
 
 app.get('/api/info', (request, response) => {
@@ -62,14 +44,11 @@ app.get('/api/info', (request, response) => {
 })
 
 app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = persons.find(person => person.id === id)
-  if (person) {
+  Person.findById(request.params.id).then(person => {
     response.json(person)
-  } else {
-    response.status(404).end()
-  }
+  })
 })
+
 
 app.delete('/api/persons/:id', (request, response) => {
   const id = Number(request.params.id)
@@ -78,50 +57,51 @@ app.delete('/api/persons/:id', (request, response) => {
   response.status(204).end()
 })
 
-const generateId = () => {
+/* const generateId = () => {
   const id = Math.floor(Math.random() * 10000000000000) + 1
   console.log(id)
   return id.toString()
-}
+} */
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
-
+  console.log("body",body)
   //si no existe el nombre en body
-  if (!body.name) {
+  if (body.name===undefined) {
     return response.status(400).json({ 
       error: 'el nombre no puede estar vacio' 
     })
   }
 
   //si no existe el numero en body
-  if (!body.number) {
+  if (body.number===undefined) {
     return response.status(400).json({ 
       error: 'el numero no puede estar vacio' 
     })
   }
-
-  //si ya existe el nombre en la agenda
   console.log("body.name",body.name)
-  console.log("persons",persons)
+  console.log("body.number",body.number)
+  //si ya existe el nombre en la agenda
+  /* console.log("body.name",body.name)
   if (persons.some(person => person.name === body.name)) {
     return response.status(400).json({ 
       error: 'el nombre ya existe en la agenda' 
     })
-  }
+  } */
 
-  const person = {
+  const person = new Person({
     name: body.name,
     number: body.number,
-    id: generateId(),
-  }
-
-  persons = persons.concat(person)
-
-  response.json(person)
+  })
+  console.log("person",person)
+  person.save().then(savedPerson => {
+    response.json(savedPerson)
+  })
 })
 
-const PORT = process.env.PORT || 3001
-app.listen(PORT)
-console.log(`Server running on port ${PORT}`)
+
+const PORT = process.env.PORT
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
+})
 
